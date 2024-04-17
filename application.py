@@ -22,3 +22,9 @@ race_builder = RaceBuilder(URL, number_of_races)
 
 betfair.keep_alive()
 races_update = race_builder.goto_every_race()
+
+race_builder.wd.close()
+time.sleep(1)
+
+for race in races_update:
+    print(race)

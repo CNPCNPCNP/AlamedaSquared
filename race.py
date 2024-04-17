@@ -8,12 +8,12 @@ class RaceType(Enum):
     TROT_RACE = 3
 
 class Race():
-    def __init__(self, venue: str, race_number: int, prices: dict, url: str, type: RaceType) -> None:
+    def __init__(self, venue: str, race_number: int, url: str, type: RaceType) -> None:
         self._venue = venue
         self._race_number = race_number
-        self._prices = prices
         self._url = url
         self._type = type
+        self._prices = {}
 
         # Betfair stuff
         self._market_id = 0
@@ -75,7 +75,7 @@ class Race():
         self._volume = volume
 
     def valid_race(self) -> bool:
-        return self._venue and self._race_number and self._prices and self._url and self._type != RaceType.UNKNOWN_RACE
+        return self._venue and self._race_number and self._url and self._type != RaceType.UNKNOWN_RACE
 
     def compare_prices(self) -> dict:
         results = {}
@@ -102,7 +102,7 @@ class Race():
         return f"<{self.get_venue()}, {self.get_race_number()}, {self.get_type()}>"
 
     def __str__(self) -> str:
-        return f"Race {self.get_race_number()} at {self.get_venue()}\nRunners: \n{self.get_betr_prices()}"
+        return f"Race {self.get_race_number()} at {self.get_venue()}\nRunners: \n{self._prices}"
 
     def __hash__(self) -> int:
         return hash(self._url)

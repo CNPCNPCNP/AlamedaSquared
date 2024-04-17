@@ -46,7 +46,7 @@ class RaceBuilder():
     def goto_every_race(self) -> list[Race]:
         self.wd.implicitly_wait(1)
         races_number = len(self.get_all_upcoming_races()) - 1
-        races = []
+        races = []  
         index = 0
         # Had issues with trying to iterate over list normally with for loop, so reload the race list every time and 
         # access each race by index. Inefficient but it works fine. Only scraping 5 races at this stage, may scrape more
@@ -56,25 +56,27 @@ class RaceBuilder():
             race = races_links[index]
             race.click_safe()
             try:
-                race = self.get_prices_from_race_page()
+                race = self.get_race_details()
                 if race.valid_race():
                     races.append(race)
-            except:
+            except Exception as ex:
                 print("Exception when getting race details. Skipping race")
+                print(ex)
             self.wd.back()
             index += 1
         return races
-
+    
     """
-    Starting with the webdriver on a race page, creates a dictionary of every horse name and its current starting price
+    Starting with the webdriver on a race page, collects all the key details about a race such as the venue, race type,
+    race number and url
     """
-    def get_prices_from_race_page(self) -> Race:
-        horses = self.wd.find_elements(By.CLASS_NAME, "RunnerDetails_competitorName__UZ66s")
-        prices = self.wd.find_elements(By.CLASS_NAME, "OddsButton_info__5qV64")
-
+    def get_race_details(self) -> Race:
         # Race name is location + race number
-        venue = self.wd.find_element(By.XPATH, '//*[@id="bm-content"]/div[2]/div/div/div[1]/ul/li[2]/a').text
-        venue = VENUES.get(venue) # Gives us None if no equivalent venue on betfair
+        try:
+            venue = self.wd.find_element(By.XPATH, '//*[@id="bm-content"]/div[2]/div/div/div[1]/ul/li[2]/a').text
+            venue = VENUES.get(venue) # Gives us None if no equivalent venue on betfair
+        except NoSuchElementException:
+            print("Unable to determine venue")
 
         try:
             race_number = int(self.wd.find_element(By.XPATH, '//*[@id="bm-content"]/div[2]/div/div/div[1]/ul/li[3]/a').text.split(" ")[-1])
@@ -87,7 +89,7 @@ class RaceBuilder():
 
         # Get url so we can access the race later to bet
         url = self.wd.current_url
-        print(venue, race_number, url)
+
         # Can extract SVG (icon) to get type of race. Annoyingly no text on page stating race type so this method is 
         # overly complex
         try:
@@ -102,6 +104,14 @@ class RaceBuilder():
             race_icon = None
             race_type = RaceType.UNKNOWN_RACE
             print('Unknown icon')
+        return Race(venue, race_number, url, race_type)
+
+    """
+    Starting with the webdriver on a race page, creates a dictionary of every horse name and its current starting price
+    """
+    def get_prices_from_race_page(self) -> Race:
+        horses = self.wd.find_elements(By.CLASS_NAME, "RunnerDetails_competitorName__UZ66s")
+        prices = self.wd.find_elements(By.CLASS_NAME, "OddsButton_info__5qV64")
 
         race_summary = {}
 
@@ -131,4 +141,4 @@ class RaceBuilder():
                 break
             
             race_summary[horse_name] = float(price.text)
-        return Race(venue, race_number, race_summary, url, race_type)   
+        return race_summary
