@@ -54,7 +54,7 @@ class RaceBuilder():
         while len(races) < self.races and index < races_number:
             races_links = self.get_all_upcoming_races()
             race = races_links[index]
-            print(type(race))
+            race.click_safe()
             try:
                 race = self.get_prices_from_race_page()
                 if race.valid_race():
@@ -73,10 +73,11 @@ class RaceBuilder():
         prices = self.wd.find_elements(By.CLASS_NAME, "OddsButton_info__5qV64")
 
         # Race name is location + race number
-        venue = self.wd.find_element(By.XPATH, '//*[@id="bm-content"]/div[2]/div/div[1]/ul/li[2]/a').text
+        venue = self.wd.find_element(By.XPATH, '//*[@id="bm-content"]/div[2]/div/div/div[1]/ul/li[2]/a').text
         venue = VENUES.get(venue) # Gives us None if no equivalent venue on betfair
+
         try:
-            race_number = int(self.wd.find_element(By.XPATH, '//*[@id="bm-content"]/div[2]/div/div[1]/ul/li[3]/a').text.split(" ")[-1])
+            race_number = int(self.wd.find_element(By.XPATH, '//*[@id="bm-content"]/div[2]/div/div/div[1]/ul/li[3]/a').text.split(" ")[-1])
         except NoSuchElementException:
             print("Unable to determine race number")
             race_number = 0 # Use sentinel value of 0 for races where we can't determine number, will skip matching later
@@ -86,11 +87,11 @@ class RaceBuilder():
 
         # Get url so we can access the race later to bet
         url = self.wd.current_url
-        
+        print(venue, race_number, url)
         # Can extract SVG (icon) to get type of race. Annoyingly no text on page stating race type so this method is 
         # overly complex
         try:
-            race_icon = self.wd.find_element(By.CSS_SELECTOR, ICON_CSS_SELECTOR).get_attribute('d').split(" ", 1)[0]
+            race_icon = self.wd.find_element(By.CSS_SELECTOR, CSS_SELECTOR).get_attribute('d').split(" ", 1)[0]
             if race_icon == HORSE_ICON:
                 race_type = RaceType.HORSE_RACE
             elif race_icon == TROT_ICON:
@@ -100,6 +101,7 @@ class RaceBuilder():
         except NoSuchElementException:
             race_icon = None
             race_type = RaceType.UNKNOWN_RACE
+            print('Unknown icon')
 
         race_summary = {}
 
@@ -129,4 +131,4 @@ class RaceBuilder():
                 break
             
             race_summary[horse_name] = float(price.text)
-        return Race(venue, race_number, race_summary, url, race_type)
+        return Race(venue, race_number, race_summary, url, race_type)   
