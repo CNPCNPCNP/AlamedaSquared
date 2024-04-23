@@ -38,7 +38,7 @@ def start_betfair_thread(race, betfair_event):
             betfair_event.clear()
             break
         try:
-            prices, volume = scraper.get_prices()
+            prices, volume = scraper.get_prices(race)
             race.set_betfair_prices(prices)
             print(prices, volume)
         except NoSuchElementException:
@@ -56,7 +56,7 @@ def start_betr_thread(race, betr_event):
 t_end = time.time() + 60 * 15
 
 while time.time() < t_end:
-    for race in races:
+    for race in races.copy():
         if not races[race].is_set():
             print(f"Removing race: {race}")
             del races[race]
