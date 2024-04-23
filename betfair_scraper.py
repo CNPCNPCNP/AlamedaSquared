@@ -19,9 +19,14 @@ class BetfairRaceScraper():
         self.wd.implicitly_wait(10) # gives an implicit wait for 10 seconds
         self.wd.get(url)
 
-        popup = self.wd.find_element(By.XPATH, '//*[@id="modal-content-click-target"]/div[1]/div')
-        popup.click_safe()
-        time.sleep(1)
+        # Try to exit the popup
+        try:
+            popup = self.wd.find_element(By.XPATH, '//*[@id="modal-content-click-target"]/div[1]/div')
+            popup.click_safe()
+            time.sleep(1)
+        except NoSuchElementException:
+            print(f'No popup detected for race at {url}, proceeding cautiously')
+            time.sleep(1)
 
         self.username = self.wd.find_element(By.XPATH, '//*[@id="ssc-liu"]')
         self.password = self.wd.find_element(By.XPATH, '//*[@id="ssc-lipw"]')
@@ -39,70 +44,28 @@ class BetfairRaceScraper():
     Pages are slightly different for Trots, dogs and horse races. So need slightly different methods to scrape correctly.
     Ensure in main controlling class that correct method is used or there will be issues.
     """
-    def get_prices_horses(self) -> dict:
+    def get_prices(self) -> dict:
         # Need to find how many non-scratched horses there are
-        horses = self.wd.find_elements(By.CLASS_NAME, "back-selection-button")
-        prices = {}
-        volume = int(self.wd.find_element(By.CLASS_NAME, "total-matched").text.split(" ")[1].replace(",", ""))
-        
-        for index in range(1, len(horses) + 1):
-            # The XPATH for betfair is always so ugly, oh well
-            horse_name = self.wd.find_elements(By.CLASS_NAME,'runner-name')[index - 1].text
-
-            back_price = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[4]/button/div/span[1]').text
-            
-            back_volume = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[4]/button/div/span[2]').text.replace("$", "")
-
-            lay_price = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[5]/button/div/span[1]').text
-
-            lay_volume = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[5]/button/div/span[2]').text.replace("$", "")
-
-            if not back_price:
-                back_price = 9998
-                back_volume = 1
-            if not lay_price:
-                lay_price = 9999
-                lay_volume = 1
-            if not back_volume:
-                print(f'No volume at {self.url} {back_volume} {lay_volume}')
-                back_volume = 1
-            if not lay_volume:
-                print(f'No volume at {self.url} {back_volume} {lay_volume}')
-                lay_volume = 1
-
-            back_price, back_volume, lay_price, lay_volume = float(back_price), int(back_volume), float(lay_price), int(lay_volume)
-
-            midpoint_price = ((lay_price - back_price) / (back_volume + lay_volume) * back_volume) + back_price
-            prices[horse_name] = midpoint_price
-
-        return prices, volume
-
-    def get_prices_american(self) -> dict:
-        # Need to find how many non-scratched horses there are
-        horses = self.wd.find_elements(By.CLASS_NAME, "back-selection-button")
+        horses = self.wd.find_elements(By.CLASS_NAME, "last-back-cell")
         prices = {}
         volume = int(self.wd.find_element(By.CLASS_NAME, "total-matched").text.split(" ")[1].replace(",", ""))
         
         for index in range(1, len(horses) + 1):
             # The XPATH for betfair is always so ugly, oh well
             horse_name = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[1]/div[2]/div[2]/bf-runner-info/div/div/div[2]/h3').text
-            
+            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[1]/div/div[2]/bf-runner-info/div/div/div[2]/h3').text
+
             back_price = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[4]/button/div/span[1]').text
+            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[4]/ours-price-button/button/label[1]').text
             
             back_volume = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[4]/button/div/span[2]').text.replace("$", "")
+            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[4]/ours-price-button/button/label[2]').text.replace("$", "")
 
             lay_price = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[5]/button/div/span[1]').text
+            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[5]/ours-price-button/button/label[1]').text
             
             lay_volume = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[5]/button/div/span[2]').text.replace("$", "")
+            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[5]/ours-price-button/button/label[2]').text.replace("$", "")
 
             if not back_price:
                 back_price = 9998
@@ -125,7 +88,7 @@ class BetfairRaceScraper():
         return prices, volume
 
     def get_prices_trots(self) -> dict:
-        horses = self.wd.find_elements(By.CLASS_NAME, "back-selection-button")
+        horses = self.wd.find_elements(By.CLASS_NAME, "last-back-cell")
         prices = {}
         volume = int(self.wd.find_element(By.CLASS_NAME, "total-matched").text.split(" ")[1].replace(",", ""))
         
@@ -134,17 +97,11 @@ class BetfairRaceScraper():
             horse_name = self.wd.find_element(By.XPATH,
             f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[1]/div/div[2]/bf-runner-info/div/div/div[3]/h3').text
 
-            back_price = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[4]/button/div/span[1]').text
-            
-            back_volume = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[4]/button/div/span[2]').text.replace("$", "")
-
             lay_price = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[5]/button/div/span[1]').text
-            
+            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[5]/ours-price-button/button/label[1]').text
+
             lay_volume = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[5]/button/div/span[2]').text.replace("$", "")
+            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[5]/ours-price-button/button/label[2]').text.replace("$", "")
 
             if not back_price:
                 back_price = 9998
@@ -167,7 +124,8 @@ class BetfairRaceScraper():
         return prices, volume
 
     def get_prices_dogs(self) -> dict:
-        dogs = self.wd.find_elements(By.CLASS_NAME, "back-selection-button")
+        dogs = self.wd.find_elements(By.CLASS_NAME, "last-back-cell")
+        print("dogs", len(dogs))
         prices = {}
         volume = int(self.wd.find_element(By.CLASS_NAME, "total-matched").text.split(" ")[1].replace(",", ""))
         
@@ -175,18 +133,19 @@ class BetfairRaceScraper():
             # The XPATH for betfair is always so ugly, oh well
             horse_name = self.wd.find_element(By.XPATH,
             f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[1]/div/div[2]/bf-runner-info/div/div/div[2]/h3').text
-            
+            print(horse_name)
+
             back_price = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[4]/button/div/span[1]').text
+            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[4]/ours-price-button/button/label[1]').text
             
             back_volume = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[4]/button/div/span[2]').text.replace("$", "")
+            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[4]/ours-price-button/button/label[2]').text.replace("$", "")
 
             lay_price = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[5]/button/div/span[1]').text
+            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[5]/ours-price-button/button/label[1]').text
             
             lay_volume = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[5]/button/div/span[2]').text.replace("$", "")
+            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[5]/ours-price-button/button/label[2]').text.replace("$", "")
 
             if not back_price:
                 back_price = 9998
@@ -205,87 +164,6 @@ class BetfairRaceScraper():
 
             midpoint_price = ((lay_price - back_price) / (back_volume + lay_volume) * back_volume) + back_price
             prices[horse_name] = midpoint_price
-
-        return prices, volume
-
-    def get_lay_prices_horses(self) -> dict:
-        # Need to find how many non-scratched horses there are
-        horses = self.wd.find_elements(By.CLASS_NAME, "back-selection-button")
-        prices = {}
-        volume = int(self.wd.find_element(By.CLASS_NAME, "total-matched").text.split(" ")[1].replace(",", ""))
-        
-        for index in range(1, len(horses) + 1):
-            # The XPATH for betfair is always so ugly, oh well
-            horse_name = self.wd.find_elements(By.CLASS_NAME,'runner-name')[index - 1].text
-
-            lay_price = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[5]/button/div/span[1]').text
-
-            if lay_price:
-                prices[horse_name] = float(lay_price)
-            else:
-                prices[horse_name] = 99999
-
-        return prices, volume
-
-    def get_lay_prices_american(self) -> dict:
-        # Need to find how many non-scratched horses there are
-        horses = self.wd.find_elements(By.CLASS_NAME, "back-selection-button")
-        prices = {}
-        volume = int(self.wd.find_element(By.CLASS_NAME, "total-matched").text.split(" ")[1].replace(",", ""))
-        
-        for index in range(1, len(horses) + 1):
-            # The XPATH for betfair is always so ugly, oh well
-            horse_name = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[1]/div[2]/div[2]/bf-runner-info/div/div/div[2]/h3').text
-            
-            lay_price = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[5]/button/div/span[1]').text
-            
-            if lay_price:
-                prices[horse_name] = float(lay_price)
-            else:
-                prices[horse_name] = 99999
-
-        return prices, volume
-
-    def get_lay_prices_trots(self) -> dict:
-        horses = self.wd.find_elements(By.CLASS_NAME, "back-selection-button")
-        prices = {}
-        volume = int(self.wd.find_element(By.CLASS_NAME, "total-matched").text.split(" ")[1].replace(",", ""))
-        
-        for index in range(1, len(horses) + 1):
-            
-            horse_name = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[1]/div/div[2]/bf-runner-info/div/div/div[3]/h3').text
-
-            lay_price = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[5]/button/div/span[1]').text
-
-            if lay_price:
-                prices[horse_name] = float(lay_price)
-            else:
-                prices[horse_name] = 99999
-
-        return prices, volume
-
-    def get_lay_prices_dogs(self) -> dict:
-        dogs = self.wd.find_elements(By.CLASS_NAME, "back-selection-button")
-        prices = {}
-        volume = int(self.wd.find_element(By.CLASS_NAME, "total-matched").text.split(" ")[1].replace(",", ""))
-        
-        for index in range(1, len(dogs) + 1):
-            # The XPATH for betfair is always so ugly, oh well
-            dog_name = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[1]/div/div[2]/bf-runner-info/div/div/div[2]/h3').text
-             
-            lay_price = self.wd.find_element(By.XPATH,
-            f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[5]/button/div/span[1]').text
-
-            if lay_price:
-                prices[dog_name] = float(lay_price)
-            else:
-                prices[dog_name] = 99998
 
         return prices, volume
 

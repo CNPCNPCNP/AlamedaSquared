@@ -25,23 +25,11 @@ betfair.login()
 
 number_of_races = 1
 race_builder = RaceBuilder(URL, number_of_races)
-races = set()
+races = {}
 betfair.keep_alive()
 
 def start_betfair_thread(race, betfair_event):
     scraper = BetfairRaceScraper(path, race.get_betfair_url(), betfair_username, betfair_password)
-    if race.get_type() == RaceType.HORSE_RACE and race.get_venue() in AMERICAN_RACES:
-            price_method = scraper.get_lay_prices_american
-            midpoint_method = scraper.get_prices_american
-    elif race.get_type() == RaceType.HORSE_RACE and race.get_venue() not in AMERICAN_RACES:
-        price_method = scraper.get_lay_prices_horses
-        midpoint_method = scraper.get_prices_horses
-    elif race.get_type() == RaceType.TROT_RACE:
-        price_method = scraper.get_lay_prices_trots
-        midpoint_method = scraper.get_prices_trots
-    else:
-        price_method = scraper.get_lay_prices_dogs
-        midpoint_method = scraper.get_prices_dogs
     while betfair_event.is_set():
         try:
             scraper.refresh()
@@ -49,13 +37,10 @@ def start_betfair_thread(race, betfair_event):
             print(f"Exiting {scraper.url}")
             betfair_event.clear()
             break
-
         try:
-            prices, volume = price_method()
+            prices, volume = scraper.get_prices()
             race.set_betfair_prices(prices)
-            race.set_volume(volume)
-            prices, _ = midpoint_method()
-            race.set_midpoint_prices(prices)
+            print(prices, volume)
         except NoSuchElementException:
             print(f"No Such element, closing thread for race {race.get_race_number()} {race.get_venue()}!")
             betfair_event.clear()
@@ -65,8 +50,16 @@ def start_betfair_thread(race, betfair_event):
     scraper.close()
     time.sleep(1)
 
+def start_betr_thread(race, betr_event):
+    pass
+
 t_end = time.time() + 60 * 15
+
 while time.time() < t_end:
+    for race in races:
+        if not races[race].is_set():
+            print(f"Removing race: {race}")
+            del races[race]
     if len(races) < number_of_races:
         races_update = race_builder.goto_every_race()
         for race in races_update:
@@ -76,11 +69,12 @@ while time.time() < t_end:
                 if race.get_market_id() == 0:
                     print("Couldn't match market ID")
                     continue
-                betfair_event = threading.Event()
-                betfair_event.set()
-                thread = threading.Thread(target = start_betfair_thread, args = [race, betfair_event])
-                thread.start()
-                races.add(race)
+                race_event = threading.Event()
+                race_event.set()
+                betfair_thread = threading.Thread(target = start_betfair_thread, args = [race, race_event])
+                betr_thread = threading.Thread(target = start_betr_thread, args =[race, race_event])
+                betfair_thread.start()
+                races[race] = race_event
     time.sleep(30)
 
 race_builder.wd.close()
