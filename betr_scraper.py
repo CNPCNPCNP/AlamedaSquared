@@ -15,10 +15,9 @@ class RaceBuilder():
 
     """
     Creates a browser controller with the associated webdriver and URL path. Use self.wd inside this class to access 
-    webdriver. Takes path as an input, so make sure you have the PATH variable setup in your .env file. If you need to 
-    access the webdriver outside this class, use the getter method get_webdriver. Uses betfair controller to get the
-    market id and betfair url for each race as well. Races specifies the number of races to track. Tracking more races
-    uses more threads
+    webdriver. If you need to  access the webdriver outside this class, use the getter method get_webdriver. Uses 
+    betfair controller to get the market id and betfair url for each race as well. Races specifies the number of 
+    races to track. Tracking more races uses more threads
     """
     def __init__(self, url: str, races: int) -> None:
         uc_options = uc.ChromeOptions()
@@ -105,40 +104,3 @@ class RaceBuilder():
             race_type = RaceType.UNKNOWN_RACE
             print('Unknown icon')
         return Race(venue, race_number, url, race_type)
-
-    """
-    Starting with the webdriver on a race page, creates a dictionary of every horse name and its current starting price
-    """
-    def get_prices_from_race_page(self) -> Race:
-        horses = self.wd.find_elements(By.CLASS_NAME, "RunnerDetails_competitorName__UZ66s")
-        prices = self.wd.find_elements(By.CLASS_NAME, "OddsButton_info__5qV64")
-
-        race_summary = {}
-
-        # Shrink horse list to match number of prices to account for scratched horses
-        if len(prices) <= 4:
-            horses = horses[:len(prices)]
-        else:
-            horses = horses[:len(prices) // 2]
-        
-        for index, horse in enumerate(horses):
-            # Split the text into the horses number and the rest of the text on the first space
-            horse_number, remainder = horse.text.split(" ", 1)
-            # Split once from the right to get gate separate from horse name. This avoids edge case where there are 
-            # spaces in the horses name
-            horse_name, gate = remainder.rsplit(" ", 1)
-            horse_name = horse_name.translate(str.maketrans('', '', string.punctuation)) # Remove punctuation from horse names
-            gate = int(gate[1:-1]) #Remove brackets from gate
-
-            # Get current price of horse. The div number seems to be separated by 6 each time starting from 4
-            number = index * 6 + 4
-
-            # Need to handle exceptions as sometimes the races don't have prices? Probably a neater way to do this
-            try:
-                price = self.wd.find_element(By.XPATH, f"//*[@id='bm-content']/div[2]/div/div[2]/div[2]/div[{number}]/button/div/span[2]")
-            except NoSuchElementException:
-                # If the element does not exist, skip this race
-                break
-            
-            race_summary[horse_name] = float(price.text)
-        return race_summary
