@@ -83,7 +83,6 @@ VENUES = {# Greyhound races
           "Philadelphia Park": "Philadelphia",
           "Sandown": "Sandown",
           "Ascot": "Ascot",
-          "Mountaineer Park": "Mountaineer Park",
           "Avondale": "Avondale",
           "Doomben": "Doomben",
           "Balaklava": "Balaklava",
@@ -152,7 +151,8 @@ VENUES = {# Greyhound races
           #"Zia Park": "Zia Park",
           #"Turf Paradise": "Turf Paradise",
           #"Golden Gate": "Golden Gate Fields",
-          #"Philadelphia Park": "Philadelphia"
+          #"Philadelphia Park": "Philadelphia",
+          #"Mountaineer Park": "Mountaineer Park"
           }
 
 AMERICAN_RACES = {"Hawthorne", 

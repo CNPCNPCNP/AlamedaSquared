@@ -1,5 +1,3 @@
-import string
-
 from constants import *
 from race import Race, RaceType
 from dotenv import load_dotenv
@@ -42,28 +40,28 @@ class RaceBuilder():
     """
     Goes to every race on the upcoming races page and then returns a list of Races and their details
     """
-    def goto_every_race(self) -> list[Race]:
+    def goto_every_race(self, races) -> Race:
         self.wd.implicitly_wait(1)
         races_number = len(self.get_all_upcoming_races()) - 1
-        races = []  
         index = 0
         # Had issues with trying to iterate over list normally with for loop, so reload the race list every time and 
         # access each race by index. Inefficient but it works fine. Only scraping 5 races at this stage, may scrape more
         # if this approach is successful.
-        while len(races) < self.races and index < races_number:
+        while index < races_number:
             races_links = self.get_all_upcoming_races()
             race = races_links[index]
             race.click_safe()
             try:
                 race = self.get_race_details()
-                if race.valid_race():
-                    races.append(race)
+                if race not in races and race.valid_race():
+                    self.wd.back()
+                    return race
             except Exception as ex:
                 print("Exception when getting race details. Skipping race")
                 print(ex)
             self.wd.back()
             index += 1
-        return races
+        return None
     
     """
     Starting with the webdriver on a race page, collects all the key details about a race such as the venue, race type,

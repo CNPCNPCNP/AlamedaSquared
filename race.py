@@ -20,7 +20,6 @@ class Race():
         self._event_id = 0
         self._betfair_url = ""
         self._betfair_prices = {}
-        self._midpoint_prices = {}
         self._volume = 0
 
         self.log = pd.DataFrame()
@@ -68,9 +67,6 @@ class Race():
     def set_betfair_prices(self, prices: dict) -> None:
         self._betfair_prices = prices
 
-    def set_midpoint_prices(self, prices: dict) -> None:
-        self._midpoint_prices = prices
-
     def set_volume(self, volume: int) -> None:
         self._volume = volume
 
@@ -91,10 +87,9 @@ class Race():
             return None, None, None, None
         for horse in self._prices:
             betr_price = self._prices[horse]
-            betfair_price = self._betfair_prices.get(horse, 99999)
-            midpoint_price = self._midpoint_prices.get(horse, 99996)
-            if midpoint_price <= betr_price * 0.945 and betr_price <= 10:
-                return horse, betr_price, self._volume, midpoint_price
+            betfair_price = self._betfair_prices.get(horse, 99996)
+            if betfair_price <= betr_price * 0.945 and betr_price <= 10:
+                return horse, betr_price, betfair_price, self._volume,
             
         return None, None, None, None
 

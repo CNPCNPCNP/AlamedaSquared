@@ -34,11 +34,11 @@ class BetfairRaceScraper():
 
             self.username = self.wd.find_element(By.XPATH, '//*[@id="ssc-liu"]')
             self.password = self.wd.find_element(By.XPATH, '//*[@id="ssc-lipw"]')
-            self.login = self.wd.find_element(By.XPATH, '//*[@id="ssc-lis"]')
+            login = self.wd.find_element(By.XPATH, '//*[@id="ssc-lis"]')
 
             self.username.send_keys(username)
             self.password.send_keys(password)
-            self.login.click_safe()
+            login.click_safe()
             time.sleep(5)
         except NoSuchElementException:
             self.login(url, username, password)
@@ -58,13 +58,14 @@ class BetfairRaceScraper():
     def get_prices(self, race) -> dict:
         # Need to find how many non-scratched horses there are
         horses = self.wd.find_elements(By.CLASS_NAME, "last-back-cell")
+        names = self.wd.find_elements(By.CLASS_NAME, 'runner-name')
         prices = {}
         volume = int(self.wd.find_element(By.CLASS_NAME, "total-matched").text.split(" ")[1].replace(",", ""))
         racetype = race.get_type()
         
         for index in range(1, len(horses) + 1):
             # The XPATH for betfair is always so ugly, oh well
-            horse_name = self.wd.find_element(By.XPATH, self.get_horse_xpath(index, racetype)).text
+            horse_name = names[index - 1].text
 
             back_price = self.wd.find_element(By.XPATH,
             f'//*[@id="main-wrapper"]/div/div[2]/div/ui-view/div/div/div[1]/div[3]/div/div[1]/div/bf-main-market/bf-main-marketview/div/div[2]/bf-marketview-runners-list[2]/div/div/div/table/tbody/tr[{index}]/td[4]/ours-price-button/button/label[1]').text
